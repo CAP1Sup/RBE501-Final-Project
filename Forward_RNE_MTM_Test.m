@@ -1,5 +1,6 @@
 % Testing MTM Forward Kinematics
 clear; clc;
+addpath('utils');
 %% Defining Chain 1 (q1, q2, q3, q4, q5, q6, q7)
 
 % Link Lengths:
