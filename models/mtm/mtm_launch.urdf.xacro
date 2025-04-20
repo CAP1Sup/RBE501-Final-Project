@@ -2,7 +2,7 @@
 <robot name="master" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <!-- Macros -->
-  <xacro:include filename="$(find dvrk_description)/mtm/mtm.urdf.xacro"/>
+  <xacro:include filename="mtm.urdf.xacro"/>
 
   <link name="world"/>
   <xacro:mtm
