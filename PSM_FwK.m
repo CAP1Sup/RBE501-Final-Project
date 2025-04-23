@@ -146,51 +146,51 @@ end
 fprintf('\nTest passed successfully.\n');
 
 %% Part D - Inverse Kinematics
-fprintf('----------------------Inverse Kinematics Test--------------------\n');
-fprintf(['Testing ' num2str(nTests) ' random configurations.\n']);
-fprintf('Progress: ');
-nbytes = fprintf('0%%');
-
-% Calculate the twist representing the robot's home pose
-currentPose = MatrixLog6(M);
-currentPose = [currentPose(3,2) currentPose(1,3) currentPose(2,1) currentPose(1:3,4)']';
-
-% Set the current joint variables
-currentQ = zeros(1,3);
-
-if plotOn
-    robot.teach(currentQ);
-    h = triad('matrix', M, 'tag', 'Target Pose', 'linewidth', 2.5, 'scale', 0.5);
-end
-
-% Generate the test configurations
-q = [linspace(0,pi/2,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests);
-     linspace(0,pi/6,nTests)];
-
-for ii = 1 : nTests
-    fprintf(repmat('\b',1,nbytes));
-    nbytes = fprintf('%0.f%%', ceil(ii/nTests*100));
-
-    % Generate the robot's pose
-    T = fkine(S,M,q(:,ii)', "SPACE");
-    targetPose = MatrixLog6(T);
-    targetPose = [targetPose(3,2) targetPose(1,3) targetPose(2,1) targetPose(1:3,4)']';
-
-    
-
-    if plotOn
-        set(h, 'matrix', T);
-        title('Inverse Kinematics Test');
-        drawnow;
-    end
-
-
-end
-
-fprintf('\nTest passed successfully.\n');
+% fprintf('----------------------Inverse Kinematics Test--------------------\n');
+% fprintf(['Testing ' num2str(nTests) ' random configurations.\n']);
+% fprintf('Progress: ');
+% nbytes = fprintf('0%%');
+% 
+% % Calculate the twist representing the robot's home pose
+% currentPose = MatrixLog6(M);
+% currentPose = [currentPose(3,2) currentPose(1,3) currentPose(2,1) currentPose(1:3,4)']';
+% 
+% % Set the current joint variables
+% currentQ = zeros(1,3);
+% 
+% if plotOn
+%     robot.teach(currentQ);
+%     h = triad('matrix', M, 'tag', 'Target Pose', 'linewidth', 2.5, 'scale', 0.5);
+% end
+% 
+% % Generate the test configurations
+% q = [linspace(0,pi/2,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests);
+%      linspace(0,pi/6,nTests)];
+% 
+% for ii = 1 : nTests
+%     fprintf(repmat('\b',1,nbytes));
+%     nbytes = fprintf('%0.f%%', ceil(ii/nTests*100));
+% 
+%     % Generate the robot's pose
+%     T = fkine(S,M,q(:,ii)', "SPACE");
+%     targetPose = MatrixLog6(T);
+%     targetPose = [targetPose(3,2) targetPose(1,3) targetPose(2,1) targetPose(1:3,4)']';
+% 
+% 
+% 
+%     if plotOn
+%         set(h, 'matrix', T);
+%         title('Inverse Kinematics Test');
+%         drawnow;
+%     end
+% 
+% 
+% end
+% 
+% fprintf('\nTest passed successfully.\n');
