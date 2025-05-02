@@ -35,7 +35,6 @@ robot = SerialLink([RevoluteMDH('a', 0, 'd', 0, 'alpha', -pi/2, 'offset', pi/2),
 % Display the manipulator in the home configuration
 q = zeros(1, n_joints);
 q(1, 3) = 0; % intermediate link, should always be 0
-q(1, 2) = 0;
 q(1, 4) = -q(1, 2);
 q(1, 5) = q(1, 2);
 qlim = [-1.605 -0.93556  0 -0.93556 -0.93556 -0.002444 -3.0456 -3.0414; %lower
