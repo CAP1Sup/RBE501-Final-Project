@@ -30,13 +30,12 @@ classdef MTM < URDFRobot
             qm(1) = q(1);
             qm(2) = q(2);
             qm(3) = q(3);
-            qm(4) = q(2) + q(3);
-            qm(5) = 0; %
-            qm(6) = -q(3);
-            qm(7) = q(4) - r3 / r4 * q(3);
+            qm(4) = q(4) - r3 / r4 * q(3);
+            qm(5) = q(5);
+            qm(6) = q(6);
+            qm(7) = q(7);
             qm(8) = q(3);
-            qm(9) = q(6);
-            qm(10) = q(7);
+            qm(9) = -q(3);
 
             % Populate the config with the joint coordinates
             A = num2cell(qm);
