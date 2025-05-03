@@ -94,28 +94,24 @@ m1 = 1.4705;
 m2 = 0.98494; 
 m2_p = 0.17841; 
 m2_pp = 2.091; 
+m2_all = m2+m2_p+m2_pp;
 m3 = 0.22491; 
 m4 = 0.0; 
 m5 = 0.00025784; 
 m6 = 0.0003225;
 m7 = 0.00025784; 
 m8 = 0.0003225;
+mc = 0.176;
+mex = 0.205;
 
-G1 = [zeros(3,3), zeros(3,3);
-      zeros(3,3), m1 * eye(3)];
+G1 = [eye(3,3)*0.1, zeros(3,3);
+      zeros(3,3), (m1) * eye(3)];
 
-% We need to see if we can combine these two
-G2 = [zeros(3,3), zeros(3,3);
-      zeros(3,3), m2 * eye(3)];
-G2_p = [zeros(3,3), zeros(3,3);
-      zeros(3,3), m2_p * eye(3)];
-G2_pp = [zeros(3,3), zeros(3,3);
-      zeros(3,3), m2_pp * eye(3)];
-
-G2_combined = G2 + G2_p + G2_pp; % This is so wrong doing this, but test
-
+% We added some short of rotational inertia due to the 4 bar
+G2 = [ones(3,3)*.1, zeros(3,3);
+      zeros(3,3), (m2_all) * eye(3)];
 G3 = [zeros(3,3), zeros(3,3);
-      zeros(3,3), m3 * eye(3)];
+      zeros(3,3), (m3-mc) * eye(3)];
 G4 = [zeros(3,3), zeros(3,3);
       zeros(3,3), m4 * eye(3)];
 G5 = [zeros(3,3), zeros(3,3);
@@ -171,17 +167,4 @@ for j = 1:7
     legend({'RNE','Estimated', 'Measured'},'Location','best');
     grid on;
 end
-
-
-
-disp("V:");
-disp(V);
-disp("Vdot");
-disp(Vdot);
-disp("Calculated tau:");
-disp(tau);
-
-% tau_gravity = robot.gravload(q);
-% disp("Correct tau")
-% disp(tau_gravity);
 
