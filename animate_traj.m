@@ -1,17 +1,34 @@
 clear;
 addpath("./utils");
 
-% robot = MTM();
-% [q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/mtm/train', 'est_tau_without_cable.csv');
+increment = 10;
 
-robot = PSM();
-[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/psm/train');
+robot = MTM();
+[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/mtm/train', 'est_tau_without_cable.csv');
+video_time = 20; % seconds
+
+%robot = PSM();
+%[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/psm/train');
+%video_time = 30; % seconds
 
 disp("Joint positions loaded, simulating trajectory...");
 
-for ii = 1:10:size(q, 1)
+writerObj = VideoWriter('test.mp4', 'MPEG-4');
+writerObj.FrameRate = (size(q, 1) / increment) / video_time;
+open(writerObj);
+
+fprintf("Simulating trajectory...");
+nbytes = fprintf('0%%');
+
+for ii = 1:increment:size(q, 1)
+    fprintf(repmat('\b', 1, nbytes));
+    nbytes = fprintf('%3.0f%%', 100 * (ii / (size(q, 1) - 1)));
+
     robot.plot(q(ii, :));
-    pause(0.01);
+
+    writeVideo(writerObj, getframe(gcf));
 end
 
-disp("Trajectory simulation complete.");
+close(writerObj);
+
+fprintf("\nTrajectory simulation complete.");
