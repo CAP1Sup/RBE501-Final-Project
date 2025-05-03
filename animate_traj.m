@@ -1,10 +1,11 @@
 clear;
+addpath("./utils");
 
 robot = MTM();
-[q, qd, qdd, tau] = load_traj('./traj/mtm/train', 'tau_without_cable.csv');
+[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/mtm/train', 'est_tau_without_cable.csv');
 
 %robot = PSM();
-%[q, qd, qdd, tau] = load_traj('./traj/psm/train');
+%[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/psm/train');
 
 disp("Joint positions loaded, simulating trajectory...");
 
