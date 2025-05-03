@@ -88,7 +88,7 @@ Vdot = zeros(6, n+1); % same
 V(:, 1) = zeros(6, 1); % Velocity of Space Frame
 for i = 2 : n+1
     j = i - 1; % Accounting for index shift due to space frame
-    V_j = A(:, j) * params.jointVel(j) + adjoint(T_VA(:, :, j)) * V(:, i-1);
+    V_j = A(:, j) * params.jointVel(j) + adjoint(T_VA(:, :, j)) * V(:, i-1 );
     V(:, i) = V_j;
 end
 
@@ -115,8 +115,11 @@ tau = zeros(7, 1);
 W(:, 4) = params.Ftip; % Assuming it is in the end effector frame
 
 
+gearbox = [];
+
 for i = n : -1 : 1 % Reverse Direction
     j = i + 1; % index shift for V and V_dot to account for space frame
+    
     Gi = params.G(:, :, i);
     Vi = V(:, j);
     Vdoti = Vdot(:, j);
@@ -126,16 +129,28 @@ for i = n : -1 : 1 % Reverse Direction
     Wi = Gi*Vdoti -...
         ad(Vi)'*Gi*Vi +...
         adjoint(T_wrench(:, :, i))'*W(:, i+1);
-    % if(i==3)
-    %     counter_weight = 2.0161;
-    %     temp = cos(params.jointPos(2)) * counter_weight * 0.0040009;
-    %     W(:, i) = Wi + [temp, 0, 0, 0, 0, 0]';
-    % else
-    %     W(:, i) = Wi;
-    % end 
     W(:, i) = Wi;
     % Wrench Supported by Joint:
     tau(i) = Wi' * Ai;
 end
+
+    %%  Adding elastic and friction torques PSM
+    % Note: values for parameters from "Modelling and identification of the da
+    % Vinci Research Kit robotic arms"
+    % Elastic torques
+    % Defining elastic gain matrix for power cables and torsional spring
+    K_e = diag([0.129, 0.35, 0, 0.003, 0, 0, 0]);
+    tau_e = K_e * params.jointPos;
+    % Friction torques
+    % Creating viscous friction matrix
+    Fv = diag([0.133, 0.136, 2.695, 0.001, 0.028, 0.02, 0.02]);
+    Fv(5,6) = 0.005;
+    Fv(6,5) = 0.013;
+    % Creating static friction matrix
+    Fs = diag([0.064, 0.15, 0.496, 0.004, 0.012, 0.004, 0.004]);
+    % Calculating torques per joint due to friction
+    tau_f = friction(params.jointVel, Fv, Fs, zeros(7,1));
+    % Calculating total joint torques
+    tau = tau + tau_e + tau_f;
 
 end

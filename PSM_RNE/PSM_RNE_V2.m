@@ -39,8 +39,6 @@ qlim = [-1.605 -0.93556  0 -0.93556 -0.93556 -0.002444 -3.0456 -3.0414, 0, 0; %l
 
 S = [0, 1, 0, 0, 0, 0; % 1
     1, 0, 0, 0, 0, 0;  % 2 
-    -1, 0, 0, -cross([-1, 0, 0], [0, -l_2L3, l_2H1]); % 2' 
-    -1, 0, 0, -cross([-1, 0, 0], [0, l_2L2-l_2L3, l_2H1]); % 2''
     0, 0, 0, 0, 0, -1; % 3
     0, 0, -1, -d3, 0, 0; % 4
     -1, 0, 0, 0, -d5, d3; % 5
@@ -70,31 +68,23 @@ T01 = twist2ht(S(:,1), 0);
 
 % We need to calculate this together 
 T02 = T01 * twist2ht(S(:,2),0);
-T02_p = T02 * twist2ht(S(:,3), 0);
-T02_pp = T02_p * twist2ht(S(:,4), 0);
-
-
-T03 = T02_pp * twist2ht(S(:,5), 0);
-T04 = T03 * twist2ht(S(:,6), 0);
-T05 = T04 * twist2ht(S(:,7), 0);
-T06 = T05 * twist2ht(S(:,8), 0);
-T07 = T06 * twist2ht(S(:,9), 0);
+T03 = T02 * twist2ht(S(:,3), 0);
+T04 = T03 * twist2ht(S(:,4), 0);
+T05 = T04 * twist2ht(S(:,5), 0);
+T06 = T05 * twist2ht(S(:,6), 0);
+T07 = T06 * twist2ht(S(:,7), 0);
 T08 = M;
 
 % Calculate M's using T's
 M01 = T01;
 M12 = pinv(M01) * T02;
-
-M2_2_p = pinv(T02) * T02_p;
-M2_p_2_pp = pinv(T02_p) * T02_pp;
-m2_pp_3 = pinv(T02_pp) * T03;
-
+M23 = pinv(T02) * T03;
 M34 = pinv(T03) * T04;
 M45 = pinv(T04) * T05;
 M56 = pinv(T05) * T06;
 M67 = pinv(T06) * T07;
 M78 = pinv(T07) * T08;
-params.M = cat(3, M01, M12, M2_2_p, M2_p_2_pp, m2_pp_3, M34, M45, M56, M67, M78);
+params.M = cat(3, M01, M12, M23, M34, M45, M56, M67, M78);
 
 
 % TODO: Calculate the proper spatial inertia matrices 
@@ -137,7 +127,7 @@ G7 = [zeros(3,3), zeros(3,3);
 G8 = [zeros(3,3), zeros(3,3);
       zeros(3,3), m8 * eye(3)];
 
-Glist = cat(3, G1, G2, G2_p, G2_pp, G3, G4, G5, G6, G7, G8);
+Glist = cat(3, G1, G2, G3, G4, G5, G6, G7, G8);
 params.G = Glist;
 
 % Call RNE function to calculate tau, V, and Vdot
