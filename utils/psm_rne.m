@@ -109,7 +109,7 @@ end
 
 % Initializing Variables:
 W = zeros(6, n+1); % Links + End Effector
-tau = zeros(n, 1);
+tau = zeros(7, 1);
 
 % Preparing Tip Wrench:
 W(:, 4) = params.Ftip; % Assuming it is in the end effector frame

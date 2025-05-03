@@ -148,15 +148,23 @@ qdd = qdd';
 meas_tau = meas_tau';
 est_tau  = est_tau'; 
 
-n_points = size(2, q); 
+n_points = size(q, 2); 
 
-for i = 1:n:n_points
-    params.jointPos = q;
-    params.jointVel = zeros(6);
-    params.jointAcc = zeros(6);
+
+rne_tau = zeros(n_joints, n_points);
+rne_V = [];
+rne_Vdot = [];
+
+for i = 1:1:n_points
+    params.jointPos = q(:, i);
+    params.jointVel = qd(:, i);
+    params.jointAcc = qdd(:, i);
     [tau,V,Vdot] = psm_rne(params);
-
+    rne_tau(n_joints, i) = tau;
 end 
+hold on; 
+plot(tau)
+
 
 
 disp("V:");
