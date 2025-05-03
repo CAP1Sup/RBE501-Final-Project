@@ -1,4 +1,4 @@
-function [tau,V,Vdot] = rne(params)
+function [tau,V,Vdot] = psm_rne(params)
 %% RNE Implements the Recursive Newton-Euler Inverse Dynamics Algorithm
 %
 % Inputs: params - a structure containing the following fields:
@@ -126,9 +126,14 @@ for i = n : -1 : 1 % Reverse Direction
     Wi = Gi*Vdoti -...
         ad(Vi)'*Gi*Vi +...
         adjoint(T_wrench(:, :, i))'*W(:, i+1);
+    % if(i==3)
+    %     counter_weight = 2.0161;
+    %     temp = cos(params.jointPos(2)) * counter_weight * 0.0040009;
+    %     W(:, i) = Wi + [temp, 0, 0, 0, 0, 0]';
+    % else
+    %     W(:, i) = Wi;
+    % end 
     W(:, i) = Wi;
-   
-
     % Wrench Supported by Joint:
     tau(i) = Wi' * Ai;
 end
