@@ -1,27 +1,12 @@
-clear; clc;
+clear; clc; close all;
 
 addpath("models\")
 addpath("utils\")
+addpath("traj\")
 %% Loading MTM URDF:
 robot =  MTM();
-matlab_robot = rigidBodyTree("DataFormat","column");
-matlab_robot.BaseName = 'world';
 robot_bodies = robot.robot.Bodies;
 n_bodies = robot.robot.NumBodies;
-
-%% Creating Copy
-
-for i = 1: length(robot_bodies)
-    bodyCopy = copy(robot_bodies{i});
-    % if isempty(robot_bodies{i}.Parent)
-    %     addBody(matlab_robot, bodyCopy, "base");
-    % else
-        addBody(matlab_robot, bodyCopy, robot_bodies{i}.Parent.Name);
-    % end
-end
-
-matlab_robot.Gravity = robot.robot.Gravity;
-
 
 %% Mapping  URDF Information to Frames Assigned per DVRK Paper We are Replicating:
 
@@ -48,7 +33,7 @@ h = 0.1056;
 
 
 % Screw Axes:
-w1 = [0, 1, 0]';
+w1 = [0, 0, 1]';
 w2 = [0, 1, 0]';
 w3 = [0, 1, 0]';
 w4 = [0, 0, 1]';
@@ -68,7 +53,6 @@ pb = [p1, p2, p3, p4, p5, p6, p7];
 
 Sb = revolute_screw(wb, pb);
 
-
 % Home Matrices (Using frames from Yan Wang 2019 Paper)
 M01 = [1, 0, 0, 0;
        0, 1, 0, 0;
@@ -86,7 +70,7 @@ M23 = [0, -1 0, La;
        0, 0, 0 1];
 
 M34 = [1, 0, 0, Lf;
-       0, 0, 1, h; % Before I was missing the h
+       0, 0, 1, h;
        0, -1, 0, 0;
        0, 0 0, 1];
 
@@ -110,7 +94,10 @@ M78 = [1, 0, 0, 0;
        0, 0, 1, 0;
        0, 0, 0, 1]; % Adding an extra frame for the end-effector
 
+
 M = cat(3, M01, M12, M23, M34, M45, M56, M67, M78);
+M_end = M01 * M12 * M23 * M34 * M45 * M56 * M67 * M78;
+
 
 %% Getting Spatial Inertias for the Links:
 
@@ -123,68 +110,152 @@ for i = 1 : length(chain1_indeces)
     chain1_Gs(:, :, i) = Gi;
 end
 
+% Tuned Spatial Inertia Matrices:
+G2I = 2; G2m = 0.9;
+G2 = diag([G2I, G2I, G2I, G2m, G2m, G2m]);
+chain1_Gs(:, :, 2) = G2;
 
-%% Defining Joint Parameters - Chain 1:
+G3I = 2.5; G3m = 0.1;
+G3 = diag([G3I, G3I, G3I, G3m, G3m, G3m]);
+chain1_Gs(:, :, 3) = G3;
 
- % Assigning Joint Parameters Randomly:
-    min = -1; max = 1;
-    q1 = q_rand(1, min, max); q1_dot = q_rand(1, min, max); q1_ddot = q_rand(1, min, max);
-    q2 = q_rand(1, min, max); q2_dot = q_rand(1, min, max); q2_ddot = q_rand(1, min, max);
-    q3 = q_rand(1, min, max); q3_dot = q_rand(1, min, max); q3_ddot = q_rand(1, min, max);
-    q4 = q_rand(1, min, max); q4_dot = q_rand(1, min, max); q4_ddot = q_rand(1, min, max);
-    q5 = q_rand(1, min, max); q5_dot = q_rand(1, min, max); q5_ddot = q_rand(1, min, max);
-    q6 = q_rand(1, min, max); q6_dot = q_rand(1, min, max); q6_ddot = q_rand(1, min, max);
-    q7 = q_rand(1, min, max); q7_dot = q_rand(1, min, max); q7_ddot = q_rand(1, min, max);
+G6I = 0.1; G6m = 0.2;
+G6 = diag([G6I, G6I, G6I, G6m, G6m, G6m]);
+chain1_Gs(:, :, 6) = G6;
+
+G7I = 0.004; G7m = 0.1;
+G7 = diag([G7I, G7I, G7I, G7m, G7m, G7m]);
+chain1_Gs(:, :, 7) = G7/2;
 
 
-    % Defining Joint Parameters for Chain 1:
-    qb = [q1, q2, q3, q4, q5, q6, q7]; %qb = "q basis"
-    qb_dot = [q1_dot, q2_dot, q3_dot, q4_dot, q5_dot, q6_dot, q7_dot];
-    qb_ddot = [q1_ddot, q2_ddot, q3_ddot, q4_ddot, q5_ddot, q6_ddot, q7_ddot];
+%% Load Trajectory:
+[q, qd, qdd, meas_tau, est_tau] = load_traj('./traj/mtm/train', 'est_tau_with_cable.csv');
 
 
 %% RNE - Chain 1
 
-% Loading Into params:
-params_b.g =[0 0 -9.81]; % Gravity Vector [m/s^2]
-params_b.S = Sb;       
-params_b.M = M;
-params_b.jointPos = qb; % Current Joint Variables (arbitrarily set to zero)
-params_b.jointVel = qb_dot; % Current Joint Velocities (arbitrarily set to zero)
-params_b.jointAcc = qb_ddot; % Current Joint Accelerations (arbitrarily set to zero)
-params_b.Ftip = zeros(6,1);
-params_b.G = chain1_Gs;
+% Initializing Variables to store Results:
+rne_simple = zeros(size(est_tau));
+rne_f= zeros(size(est_tau));
+rne_s = zeros(size(est_tau));
+rne_m = zeros(size(est_tau));
+rne_fsm = zeros(size(est_tau));
 
-% RNE Calculation:
-[tau, V_b,Vdot_b] = rne(params_b);
+for i = 1 : length(q)
+    
+    % Loading Into params:
+    params_b.g =[0 0 -9.81]; % Gravity Vector [m/s^2]
+    params_b.S = Sb;       
+    params_b.M = M;
+    params_b.jointPos = q(i, :); 
+    params_b.jointVel = qd(i, :);
+    params_b.jointAcc = qdd(i, :);
+    params_b.Ftip = zeros(6,1);
+    params_b.G = chain1_Gs;
 
-fprintf('The torques calculated with RNE: \n')
-disp(tau)
+    % RNE Calculations:
+    tau_simple_i = mtm_rne(params_b, 1);
+    tau_f_i = mtm_rne(params_b, 2);
+    tau_s_i = mtm_rne(params_b, 3);
+    tau_m_i = mtm_rne(params_b, 4);
+    tau_fsm_i = mtm_rne(params_b, 5);
+    
+
+    % Store Results:
+    rne_simple(i, :) = tau_simple_i';
+    rne_f(i, :) = tau_f_i';
+    rne_s(i, :) = tau_s_i';
+    rne_m(i, :) = tau_m_i';
+    rne_fsm(i, :) = tau_fsm_i';
+end
+
+%% Plotting: 
+
+% Plotting RNE VS Paper Results:
+figure('Name','Joint‑level torque comparison', 'WindowState','maximized')
+tiledlayout(4, 2,"TileSpacing","compact");   % 8 tiles → last one remains blank
+
+for j = [1 : 7]
+    nexttile;
+
+    plot(rne_fsm(1:2000, j),       'LineWidth', 3);       % RNE solid
+    hold on;
+    plot(est_tau(1:2000, j),'--',  'LineWidth', 3);       % estimate dashed
+    hold on;
+    plot(meas_tau(1:2000, j),'-.',  'LineWidth', 3);       % estimate dashed
+    hold off;
+
+    title(sprintf('Joint %d',j));
+    xlabel('Iterations');           
+    ylabel('Torque [N·m]');
+    legend({'RNE','Estimated', 'Measured'},'Location','southeast');
+    grid on;
+end
+exportFigurePDF('MTM_Torques')
+sgtitle('MTM - RNE Vs. Estimated (Wang et al.) Vs. Measured Torques');
+hold off;
 
 
-%% MATLAB version
+% Plotting With and without Friction and Elastic Torques:
+figure('Name','Friction and Elastic Torque', 'WindowState','maximized');
+tiledlayout(4,2,"TileSpacing","compact");   % 8 tiles → last one remains blank
 
-% Relationships from paper:
-q3p = q2 + q3; %q3'
-q3pp = -q3; % q3''
+gear_ratio_list = [63.41, 49.88, 59.73, 10.53, 33.16, 33.16, 16.58]';
 
-% Joint Velocities:
-q3p_dot = q2_dot + q3_dot;
-q3pp_dot = -q3_dot;
+for j = 1:7
+    nexttile;
+
+    plot(rne_simple(1:500, j),'--',  'LineWidth',3);     
+    hold on;
+    plot(rne_f(1:500, j),'--',  'LineWidth',3);  
+    hold on;
+    plot(rne_s(1:500, j),'-.',  'LineWidth',3);
+    hold on;
+    plot(rne_m(1:500, j),'-.',  'LineWidth',3);
+    hold on;
+    plot(rne_fsm(1:500, j),       'LineWidth',3);    
+    hold off;
+
+    
+    title(sprintf('Joint %d',j));
+    xlabel('i');           
+    ylabel('Torque [N·m]');
+    legend({'None Added', 'Friction', 'Spring', 'Motor Inertia', 'Friction + Spring + Motor Inertia'},'Location','southeast');
+    grid on;
+end
+
+%sgtitle('RNE Torques - Impact of Friction, Springs, and Motor Inertia');
+hold off;
+
+exportFigurePDF('Friction and Elastic Torque')
 
 
-% Joint Accelerations: 
-q3p_ddot = q2_ddot + q3_ddot;
-q3pp_ddot = -q3_ddot;
-
-% Combining Joints:
-q_c = [qb, q3p, q3pp];
-q_c_dot = [qb_dot, q3p_dot, q3pp_dot];
-q_c_ddot = [qb_ddot, q3p_ddot, q3pp_ddot];
+%% Error Calculations:
+rmse_est = rmse(rne_fsm, est_tau)
+rmse_meas = rmse(rne_fsm, meas_tau)
 
 
+rmse_list = zeros(1, 7);
+average_list = zeros(1, 7);
+rmse_normalized_list = zeros(1, 7);
+for j = 1:7
+    rmse_j = rmse(meas_tau(:,j), rne_fsm(:, j));
+    rmse_est_j = rmse(est_tau(:, j), rne_fsm(:, j));
+    average_j = max(abs(meas_tau(:, j)));
+    average_est_j= max(abs(est_tau(:, j)));
 
-matlab_torques = matlab_robot.inverseDynamics(q_c', q_c_dot', q_c_ddot');
+    rmse_list(j) = rmse_j;
+    rmse_est_list(j) = rmse_est_j;
+    rmse_normalized_list(j) = rmse_j / average_j;
+    rmse_normalized_est_list(j) = rmse_est_j / average_est_j;
+end
+rmse_normalized_percentage = rmse_normalized_list * 100;
+rmse_normalized_est_percentage = rmse_normalized_est_list * 100;
 
-fprintf('The Matlab results for the same torqes is:\n')
-disp(matlab_torques(1:7))
+fprintf('\nRMSE Percentage vs Measured Torques:\n')
+disp(rmse_normalized_percentage);
+fprintf('\nRMSE Percentage vs Estimated Torques:\n')
+disp(rmse_normalized_est_percentage);
+
+
+

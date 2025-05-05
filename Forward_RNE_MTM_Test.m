@@ -1,7 +1,7 @@
 % Testing MTM Forward Kinematics
-clear; clc;
+
 addpath('utils');
-print_bool = false;
+print_bool = true;
 %% Defining Chain 1 (q1, q2, q3, q4, q5, q6, q7)
 
 % Link Lengths:
@@ -13,7 +13,7 @@ h = 0.1056;
 
 
 % Screw Axes:
-w1 = [0, 1, 0]';
+w1 = [0, 0, 1]';
 w2 = [0, 1, 0]';
 w3 = [0, 1, 0]';
 w4 = [0, 0, 1]';
@@ -161,7 +161,7 @@ Ga = cat(3, G1, G3p, G3pp, G3ppp, G4, G5, G6, G7);
 
 %% Testing Forward RNE for Random Configurations:
 
-for test = 1 : 100
+for test_i = 1 : 100
 
     % Assigning Joint Parameters Randomly:
     min = -100; max = 100;
@@ -199,6 +199,7 @@ for test = 1 : 100
     q3p = q2 + q3; %q3'
     q3pp = -q3; % q3''
     q3ppp = q3; % q3'''
+
     qa = [q1, q3p, q3pp, q3ppp, q4, q5, q6, q7]; % qa = "q additional". Note also including necessary basis joints (q1, q4, q5, q6, q7)
     
     % Joint Velocities:
